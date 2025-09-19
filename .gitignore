@@ -1,0 +1,29 @@
+# Temporary files
+*.tmp
+*.log
+*.swp
+*~
+
+# Mac OS
+.DS_Store
+
+# IDE files
+.idea/
+.vscode/
+*.sublime-*
+
+# Generated orchestration files (from generate-orchestrator.sh)
+# These are domain-specific and should not be committed
+orchestrate-domain-*.sh
+
+# Progress tracking
+*_PROGRESS.md
+*_LOG.md
+TODO_*.md
+
+# Session files
+*.session
+
+# Backup files
+*.backup
+*.bak

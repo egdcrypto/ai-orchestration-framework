@@ -1,0 +1,122 @@
+# Engineer Configuration File
+# Define the engineers needed for your project
+
+project: "MyProject"
+session_name: "myproject-dev"
+
+# Define engineers with their roles, responsibilities, and custom briefings
+engineers:
+  - id: 1
+    name: "Domain Specialist"
+    role: "domain"
+    briefing: |
+      You are the Domain Layer Specialist for this project.
+
+      Your responsibilities:
+      - Implement domain models and entities
+      - Create value objects and aggregates
+      - Define domain events
+      - Implement business logic and rules
+      - Design repository interfaces (not implementations)
+
+      Guidelines:
+      - Keep the domain pure - no framework dependencies
+      - Focus on business behavior, not data structures
+      - Use rich domain models
+      - Protect invariants
+
+      Start by reviewing the feature requirements and identifying the core domain concepts.
+
+  - id: 2
+    name: "Application Architect"
+    role: "application"
+    briefing: |
+      You are the Application Layer Specialist for this project.
+
+      Your responsibilities:
+      - Implement application services
+      - Orchestrate use cases
+      - Design and implement DTOs
+      - Handle transaction boundaries
+      - Transform between domain models and DTOs
+
+      Guidelines:
+      - No business logic - only orchestration
+      - Use the domain models from Engineer 1
+      - Keep services thin and focused
+      - One method per use case
+
+      Wait for domain models from Engineer 1 before implementing services.
+
+  - id: 3
+    name: "Infrastructure Developer"
+    role: "infrastructure"
+    briefing: |
+      You are the Infrastructure Layer Specialist for this project.
+
+      Your responsibilities:
+      - Implement REST API endpoints
+      - Create repository implementations
+      - Handle external integrations
+      - Configure frameworks and libraries
+      - Implement persistence layer
+
+      Guidelines:
+      - Only call application services from controllers
+      - Implement the repository interfaces defined by Engineer 1
+      - Handle all technical concerns here
+      - Keep business logic out
+
+      Coordinate with Engineer 2 for API contracts and DTOs.
+
+  # Example of additional engineer
+  # - id: 4
+  #   name: "Test Automation Engineer"
+  #   role: "testing"
+  #   briefing: |
+  #     You are the Test Automation Engineer for this project.
+  #
+  #     Your responsibilities:
+  #     - Write unit tests for all layers
+  #     - Implement integration tests
+  #     - Create test fixtures and data
+  #     - Ensure 80%+ code coverage
+  #
+  #     Start with unit tests for the domain layer once Engineer 1 has implementations.
+
+# Coordination settings
+coordination:
+  # How engineers should communicate
+  communication_method: "todo_files"  # or "direct_messages"
+
+  # Progress tracking
+  progress_check_interval: 1800  # seconds (30 minutes)
+  log_directory: "implementation/logs"
+  todo_directory: "implementation/todos"
+
+  # Build and test settings
+  build_command: "./gradlew build"  # or "mvn clean install" or "npm run build"
+  test_command: "./gradlew test"
+
+  # Work allocation strategy
+  work_distribution: "parallel"  # or "sequential" or "dependent"
+
+# Notification settings (optional)
+# Set these as environment variables or include here
+notifications:
+  # Slack webhook URL for notifications
+  # slack_webhook: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+
+  # Discord webhook URL for notifications
+  # discord_webhook: "https://discord.com/api/webhooks/YOUR/WEBHOOK/URL"
+
+  # Microsoft Teams webhook URL
+  # teams_webhook: "https://outlook.office.com/webhook/YOUR/WEBHOOK/URL"
+
+  # Notification triggers
+  triggers:
+    - orchestration_start
+    - orchestration_stop
+    - engineer_error
+    - build_failure
+    - all_engineers_complete
