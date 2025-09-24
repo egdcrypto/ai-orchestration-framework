@@ -1,0 +1,128 @@
+# Aider Configuration for AI Orchestration Framework
+# Using LOCAL MODELS ONLY - No API keys required!
+
+# Prerequisites:
+# 1. Install Ollama: curl -fsSL https://ollama.ai/install.sh | sh
+# 2. Install Aider: pip install aider-chat
+# 3. Pull models: ollama pull deepseek-coder:33b codellama:34b qwen2.5-coder:32b
+
+# Available Aider models via Ollama (ALL FREE - no API keys needed)
+aider_providers:
+
+  # DeepSeek Coder - Best for code generation
+  aider-deepseek:
+    model: "ollama/deepseek-coder:33b"
+    command_template: "aider --model ollama/deepseek-coder:33b --no-auto-commits --yes --message"
+    description: "Excellent at code completion and generation"
+    requires_ollama: true
+    recommended_for: ["infrastructure", "boilerplate", "api_endpoints"]
+
+  # CodeLlama - Best for code understanding
+  aider-codellama:
+    model: "ollama/codellama:34b"
+    command_template: "aider --model ollama/codellama:34b --no-auto-commits --yes --message"
+    description: "Strong at understanding and refactoring code"
+    requires_ollama: true
+    recommended_for: ["domain", "refactoring", "complex_logic"]
+
+  # Qwen 2.5 Coder - Newest, very capable
+  aider-qwen:
+    model: "ollama/qwen2.5-coder:32b"
+    command_template: "aider --model ollama/qwen2.5-coder:32b --no-auto-commits --yes --message"
+    description: "Latest model, good balance of speed and quality"
+    requires_ollama: true
+    recommended_for: ["application", "services", "testing"]
+
+  # Mixtral - Good for instructions
+  aider-mixtral:
+    model: "ollama/mixtral:8x7b"
+    command_template: "aider --model ollama/mixtral:8x7b --no-auto-commits --yes --message"
+    description: "Good at following detailed instructions"
+    requires_ollama: true
+    recommended_for: ["documentation", "test_generation", "simple_tasks"]
+
+  # Smaller/Faster models for simple tasks
+  aider-codellama-13b:
+    model: "ollama/codellama:13b"
+    command_template: "aider --model ollama/codellama:13b --no-auto-commits --yes --message"
+    description: "Faster, good for simple edits"
+    requires_ollama: true
+    recommended_for: ["quick_fixes", "small_changes"]
+
+  aider-deepseek-7b:
+    model: "ollama/deepseek-coder:7b"
+    command_template: "aider --model ollama/deepseek-coder:7b --no-auto-commits --yes --message"
+    description: "Very fast, good for boilerplate"
+    requires_ollama: true
+    recommended_for: ["templates", "simple_crud"]
+
+# Aider command options
+aider_options:
+  # Auto-approve all changes (for autonomous operation)
+  auto_yes: "--yes"
+
+  # Auto-commit changes with descriptive messages
+  auto_commit: "--auto-commits"
+
+  # Don't show diffs (cleaner output)
+  no_pretty: "--no-pretty"
+
+  # Disable streaming (for tmux compatibility)
+  no_stream: "--no-stream"
+
+  # Set specific files to edit
+  files: "--files"
+
+  # Run tests after changes
+  test: "--test-cmd"
+
+  # Lint/format after changes
+  lint: "--lint-cmd"
+
+# Example configurations for different engineer roles (ALL LOCAL MODELS)
+engineer_aider_configs:
+
+  domain_engineer:
+    provider: "aider-codellama"  # Best for complex logic
+    options: "--yes --no-auto-commits --test-cmd 'python -m pytest tests/domain'"
+    focus_files: "domains/*/domain/**/*.py"
+
+  application_engineer:
+    provider: "aider-qwen"  # Good balance for services
+    options: "--yes --no-auto-commits --test-cmd 'python -m pytest tests/application'"
+    focus_files: "domains/*/application/**/*.py"
+
+  infrastructure_engineer:
+    provider: "aider-deepseek"  # Best for code generation
+    options: "--yes --no-auto-commits"
+    focus_files: "domains/*/infrastructure/**/*.py"
+
+  test_engineer:
+    provider: "aider-mixtral"  # Good at following test patterns
+    options: "--yes --no-auto-commits --test-cmd 'python -m pytest'"
+    focus_files: "tests/**/*.py features/**/*.feature"
+
+# Setup script for local models
+setup_local_models: |
+  #!/bin/bash
+  # Install Ollama
+  curl -fsSL https://ollama.ai/install.sh | sh
+
+  # Install Aider
+  pip install aider-chat
+
+  # Pull recommended models (choose based on your RAM/GPU)
+  # For 32GB+ RAM:
+  ollama pull deepseek-coder:33b
+  ollama pull codellama:34b
+  ollama pull qwen2.5-coder:32b
+
+  # For 16GB RAM:
+  ollama pull codellama:13b
+  ollama pull deepseek-coder:7b
+
+  # For 8GB RAM:
+  ollama pull codellama:7b
+
+  # Test Aider with local model
+  echo "Test" | aider --model ollama/codellama:13b --yes

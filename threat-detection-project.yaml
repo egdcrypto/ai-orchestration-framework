@@ -1,0 +1,423 @@
+# Threat Detection System - Project Configuration
+# Phase 1: TDD Implementation with Hexagonal Architecture
+
+project:
+  name: "Threat Detection System"
+  session_name: "threat-detection-dev"
+  phase: 1
+  approach: "TDD"
+  architecture: "hexagonal"
+  branch: "feature/tdd-hexagonal-implementation"
+
+# Path configuration objects
+paths:
+  repository:
+    root: "/home/repos/threat-detection-system"
+
+  features:
+    root: "/home/repos/threat-detection-system/features"
+    mvp:
+      - "mvp_threat_detection.feature"
+      - "mvp_drone_operations.feature"
+      - "mvp_operator_interface.feature"
+      - "mvp_system_integration.feature"
+
+  domains:
+    root: "/home/repos/threat-detection-system/domains"
+    threat_detection:
+      path: "/home/repos/threat-detection-system/domains/threat-detection"
+      layers:
+        domain: "threat_detection/domain"
+        application: "threat_detection/application"
+        infrastructure: "threat_detection/infrastructure"
+    drone_control:
+      path: "/home/repos/threat-detection-system/domains/drone-control"
+      layers:
+        domain: "domain"
+        application: "application"
+        infrastructure: "infrastructure"
+
+  tests:
+    unit: "tests/unit"
+    integration: "tests/integration"
+    acceptance: "tests/acceptance"
+
+# Development settings
+development:
+  test_first: true
+  use_interfaces: true
+  mock_externals: true
+  coverage_target: 90
+
+  patterns:
+    - "All services must have interfaces"
+    - "Domain layer has no external dependencies"
+    - "Use in-memory implementations for testing"
+    - "Write failing test first, then implementation"
+    - "Mock all external systems (DB, APIs, messaging)"
+
+# Testing framework standards
+testing_frameworks:
+  python:
+    unit_test: "pytest"
+    bdd_framework: "pytest-bdd"
+    mocking: "pytest-mock"
+    coverage: "pytest-cov"
+    fixtures: "pytest fixtures"
+    assertions: "pytest assertions"
+    test_structure: "tests/{unit,integration,acceptance}"
+    naming: "test_*.py or *_test.py"
+
+  java:
+    unit_test: "JUnit 5"
+    bdd_framework: "Cucumber-JVM"
+    mocking: "Mockito"
+    coverage: "JaCoCo"
+    fixtures: "@BeforeEach/@AfterEach"
+    assertions: "AssertJ"
+    test_structure: "src/test/java"
+    naming: "*Test.java or Test*.java"
+
+# Build and test commands
+commands:
+  test_unit: "python -m pytest tests/unit -v"
+  test_integration: "python -m pytest tests/integration -v"
+  test_all: "python -m pytest -v --cov=. --cov-report=html"
+  lint: "flake8 . --max-line-length=120"
+  typecheck: "mypy ."
+  format: "black ."
+
+# Engineer definitions
+engineers:
+  - id: 1
+    name: "Domain TDD Specialist"
+    role: "domain"
+    focus: "Phase 1 - TDD Domain Layer"
+    briefing: |
+      You are the Domain Layer TDD Specialist for the Threat Detection System.
+
+      PHASE 1 FOCUS: Test-Driven Development of Core Domain
+
+      Your TDD workflow:
+      1. Write failing unit test first
+      2. Create minimal implementation to pass
+      3. Refactor while keeping tests green
+      4. Repeat for each behavior
+
+      Domain components to implement (with tests first):
+      - Entities:
+        * Threat (with severity, type, location, timestamp)
+        * Drone (with status, position, capabilities)
+        * SecurityZone (with boundaries, alert level)
+        * Operator (with permissions, active sessions)
+
+      - Value Objects:
+        * ThreatSeverity (CRITICAL, HIGH, MEDIUM, LOW)
+        * DroneStatus (IDLE, PATROLLING, RESPONDING, CHARGING)
+        * GPSCoordinate (latitude, longitude, altitude)
+        * DetectionConfidence (percentage with validation)
+
+      - Domain Services:
+        * ThreatAssessmentService (analyze and classify threats)
+        * DroneAllocationService (assign drones to threats)
+        * ZoneMonitoringService (track zone status)
+
+      - Repository Interfaces (no implementation):
+        * ThreatRepository
+        * DroneRepository
+        * SecurityZoneRepository
+
+      - Domain Events:
+        * ThreatDetected
+        * DroneDispatched
+        * ZoneBreached
+        * ThreatNeutralized
+
+      Testing requirements:
+      - 100% unit test coverage for domain logic
+      - Use pytest for all tests
+      - No external dependencies in tests
+      - Each test should be isolated and fast
+      - Test edge cases and invariants
+
+      File structure:
+      domains/threat-detection/threat_detection/domain/
+      ├── entities/
+      │   ├── __init__.py
+      │   ├── threat.py
+      │   └── tests/
+      │       └── test_threat.py
+      ├── value_objects/
+      │   ├── __init__.py
+      │   ├── threat_severity.py
+      │   └── tests/
+      │       └── test_threat_severity.py
+      └── services/
+          ├── __init__.py
+          ├── threat_assessment_service.py
+          └── tests/
+              └── test_threat_assessment_service.py
+
+  - id: 2
+    name: "Application TDD Architect"
+    role: "application"
+    focus: "Phase 1 - TDD Application Layer"
+    briefing: |
+      You are the Application Layer TDD Specialist for the Threat Detection System.
+
+      PHASE 1 FOCUS: Test-Driven Development of Application Services
+
+      Your TDD workflow:
+      1. Write failing test with mocked dependencies
+      2. Implement use case to pass test
+      3. Refactor for clarity
+      4. Ensure all dependencies are injected
+
+      Application components to implement (with tests first):
+
+      - Use Case Services (with interface + implementation):
+        * DetectThreatUseCase
+        * DispatchDroneUseCase
+        * MonitorZoneUseCase
+        * GenerateAlertUseCase
+        * UpdateDroneStatusUseCase
+
+      - Application DTOs:
+        * ThreatDetectionRequest/Response
+        * DroneDispatchRequest/Response
+        * ZoneStatusRequest/Response
+        * AlertNotificationDTO
+
+      - Port Interfaces (for infrastructure):
+        * NotificationPort
+        * DroneControlPort
+        * SensorDataPort
+        * EventPublisherPort
+
+      - Mappers:
+        * DomainToDTOMapper
+        * DTOToDomainMapper
+
+      Testing requirements:
+      - Mock all domain services and repositories
+      - Use dependency injection for all services
+      - Test happy paths and error cases
+      - Verify correct orchestration logic
+      - Use pytest-mock for mocking
+
+      Example test pattern:
+      ```python
+      def test_detect_threat_use_case():
+          # Arrange
+          mock_repo = Mock(ThreatRepository)
+          mock_service = Mock(ThreatAssessmentService)
+          use_case = DetectThreatUseCase(mock_repo, mock_service)
+
+          # Act
+          result = use_case.execute(request)
+
+          # Assert
+          assert result.success
+          mock_service.assess.assert_called_once()
+      ```
+
+      File structure:
+      domains/threat-detection/threat_detection/application/
+      ├── use_cases/
+      │   ├── __init__.py
+      │   ├── detect_threat.py
+      │   └── tests/
+      │       └── test_detect_threat.py
+      ├── dtos/
+      │   ├── __init__.py
+      │   ├── threat_dto.py
+      │   └── tests/
+      │       └── test_threat_dto.py
+      └── ports/
+          ├── __init__.py
+          └── notification_port.py
+
+  - id: 3
+    name: "Infrastructure TDD Developer"
+    role: "infrastructure"
+    focus: "Phase 1 - TDD Infrastructure Adapters"
+    briefing: |
+      You are the Infrastructure Layer TDD Specialist for the Threat Detection System.
+
+      PHASE 1 FOCUS: Test-Driven Development of Infrastructure Adapters
+
+      Your TDD workflow:
+      1. Write integration test with in-memory implementations
+      2. Create adapter implementation
+      3. Test with mocked external dependencies
+      4. Provide in-memory version for other layers' tests
+
+      Infrastructure components to implement (with tests first):
+
+      - Repository Implementations:
+        * InMemoryThreatRepository (for testing)
+        * InMemoryDroneRepository (for testing)
+        * InMemorySecurityZoneRepository (for testing)
+        Note: Real DB implementations in Phase 2
+
+      - REST API Controllers:
+        * ThreatController (/api/threats)
+        * DroneController (/api/drones)
+        * ZoneController (/api/zones)
+        * AlertController (/api/alerts)
+
+      - Adapter Implementations:
+        * InMemoryNotificationAdapter
+        * MockDroneControlAdapter
+        * SimulatedSensorDataAdapter
+        * InMemoryEventPublisher
+
+      - API DTOs and Validation:
+        * Request/Response models
+        * Input validation
+        * Error handling
+
+      Testing requirements:
+      - Use FastAPI TestClient for API tests
+      - Provide in-memory implementations for all ports
+      - Test request validation and error responses
+      - Mock external service calls
+      - Test serialization/deserialization
+
+      Example test pattern:
+      ```python
+      def test_threat_controller_create():
+          # Arrange
+          app = FastAPI()
+          repo = InMemoryThreatRepository()
+          controller = ThreatController(repo)
+          client = TestClient(app)
+
+          # Act
+          response = client.post("/api/threats", json={...})
+
+          # Assert
+          assert response.status_code == 201
+          assert repo.count() == 1
+      ```
+
+      File structure:
+      domains/threat-detection/threat_detection/infrastructure/
+      ├── repositories/
+      │   ├── __init__.py
+      │   ├── in_memory_threat_repository.py
+      │   └── tests/
+      │       └── test_in_memory_threat_repository.py
+      ├── api/
+      │   ├── __init__.py
+      │   ├── threat_controller.py
+      │   └── tests/
+      │       └── test_threat_controller.py
+      └── adapters/
+          ├── __init__.py
+          ├── in_memory_notification_adapter.py
+          └── tests/
+              └── test_notification_adapter.py
+
+  - id: 4
+    name: "Test Integration Specialist"
+    role: "testing"
+    focus: "Phase 1 - Test Framework and Integration"
+    briefing: |
+      You are the Test Integration Specialist for the Threat Detection System.
+
+      PHASE 1 FOCUS: Setting up comprehensive test framework
+
+      Your responsibilities:
+      1. Set up pytest configuration and fixtures
+      2. Create shared test utilities and mocks
+      3. Implement acceptance tests for Gherkin scenarios
+      4. Ensure test isolation and repeatability
+
+      Test infrastructure to implement:
+
+      - Test Configuration:
+        * pytest.ini with markers and settings
+        * conftest.py with shared fixtures
+        * Test database setup/teardown
+        * Coverage configuration
+
+      - Shared Test Fixtures:
+        * Factory functions for domain entities
+        * Mock service builders
+        * In-memory repository fixtures
+        * Test data generators
+
+      - Acceptance Tests:
+        * Gherkin scenario implementations
+        * End-to-end test flows
+        * API integration tests
+        * System behavior validation
+
+      - Test Utilities:
+        * Custom assertions
+        * Test data builders
+        * Mock response generators
+        * Performance benchmarks
+
+      Testing standards:
+      - All tests must be deterministic
+      - Tests must run in < 1 second (unit)
+      - No test should depend on external services
+      - Use pytest-bdd for Gherkin scenarios
+      - Maintain test documentation
+
+      Example fixture:
+      ```python
+      @pytest.fixture
+      def threat_factory():
+          def _create_threat(**kwargs):
+              defaults = {
+                  'type': ThreatType.INTRUDER,
+                  'severity': ThreatSeverity.MEDIUM,
+                  'location': GPSCoordinate(0, 0)
+              }
+              defaults.update(kwargs)
+              return Threat(**defaults)
+          return _create_threat
+      ```
+
+      File structure:
+      tests/
+      ├── unit/
+      │   ├── conftest.py
+      │   ├── domain/
+      │   ├── application/
+      │   └── infrastructure/
+      ├── integration/
+      │   ├── conftest.py
+      │   └── api/
+      ├── acceptance/
+      │   ├── conftest.py
+      │   └── features/
+      └── fixtures/
+          ├── __init__.py
+          ├── factories.py
+          └── mocks.py
+
+# Coordination settings
+coordination:
+  communication_method: "todo_files"
+  progress_check_interval: 600  # 10 minutes for TDD cycles
+
+  checkpoints:
+    - "Unit tests written"
+    - "Implementation passes tests"
+    - "Refactoring complete"
+    - "Integration verified"
+    - "Coverage target met"
+
+# Phase 1 Success Criteria
+success_criteria:
+  - "All domain entities have 100% test coverage"
+  - "All use cases are test-driven"
+  - "In-memory implementations for all repositories"
+  - "API endpoints with full test coverage"
+  - "Gherkin scenarios have acceptance tests"
+  - "No external dependencies in tests"
+  - "All tests pass in < 5 seconds total"

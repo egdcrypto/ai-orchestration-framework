@@ -5,9 +5,60 @@
 
 set -e
 
-# Default values
-CONFIG_FILE="${1:-engineers.yaml}"
-COMMAND="${2:-start}"
+# Parse command line arguments
+CONFIG_FILE=""
+COMMAND="start"
+AI_PROVIDER="claude"
+AI_MODEL=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --ai-provider)
+            AI_PROVIDER="$2"
+            shift 2
+            ;;
+        --ai-model)
+            AI_MODEL="$2"
+            shift 2
+            ;;
+        start|stop|status|monitor|broadcast|install)
+            COMMAND="$1"
+            shift
+            ;;
+        *.yaml|*.yml)
+            CONFIG_FILE="$1"
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: $0 [config-file] [command] [options]"
+            echo ""
+            echo "Commands:"
+            echo "  install   - Install prerequisites for AI providers"
+            echo "  start     - Start orchestration"
+            echo "  stop      - Stop orchestration"
+            echo "  status    - Check status"
+            echo "  monitor   - Monitor engineers"
+            echo "  broadcast - Send message to all"
+            echo ""
+            echo "Options:"
+            echo "  --ai-provider <provider>  - AI provider (claude, aider-local, aider-deepseek, etc.)"
+            echo "  --ai-model <model>        - Specific model to use"
+            echo ""
+            echo "Examples:"
+            echo "  $0 engineers.yaml start --ai-provider claude"
+            echo "  $0 engineers.yaml start --ai-provider aider-local --ai-model codellama:34b"
+            exit 0
+            ;;
+        *)
+            echo "Unknown argument: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Default config file if not specified
+CONFIG_FILE="${CONFIG_FILE:-engineers.yaml}"
 
 # Check if config exists
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -19,9 +70,18 @@ if [ ! -f "$CONFIG_FILE" ]; then
     exit 1
 fi
 
-# Extract configuration values
-PROJECT=$(grep "^project:" "$CONFIG_FILE" | cut -d'"' -f2)
-SESSION_NAME=$(grep "^session_name:" "$CONFIG_FILE" | cut -d'"' -f2 || echo "project-dev")
+# Extract configuration values - handle both formats
+if grep -q "^project:" "$CONFIG_FILE" && grep -q "  name:" "$CONFIG_FILE"; then
+    # New nested format
+    PROJECT=$(python3 -c "import yaml; config = yaml.safe_load(open('$CONFIG_FILE')); print(config.get('project', {}).get('name', 'Unnamed'))" 2>/dev/null || echo "Project")
+    SESSION_NAME=$(python3 -c "import yaml; config = yaml.safe_load(open('$CONFIG_FILE')); print(config.get('project', {}).get('session_name', 'project-dev'))" 2>/dev/null || echo "project-dev")
+    REPO_PATH=$(python3 -c "import yaml; config = yaml.safe_load(open('$CONFIG_FILE')); print(config.get('paths', {}).get('repository', {}).get('root', '.'))" 2>/dev/null || echo ".")
+else
+    # Old flat format
+    PROJECT=$(grep "^project:" "$CONFIG_FILE" | cut -d'"' -f2)
+    SESSION_NAME=$(grep "^session_name:" "$CONFIG_FILE" | cut -d'"' -f2 || echo "project-dev")
+    REPO_PATH="."
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -140,6 +200,9 @@ start_orchestration() {
             tmux send-keys -t "$SESSION_NAME:$ENG_ID" "# Engineer $ENG_ID: $ENG_NAME" C-m
             tmux send-keys -t "$SESSION_NAME:$ENG_ID" "# Role: $ENG_ROLE" C-m
             tmux send-keys -t "$SESSION_NAME:$ENG_ID" "# Session: $SESSION_NAME" C-m
+            tmux send-keys -t "$SESSION_NAME:$ENG_ID" "# Working Directory: $REPO_PATH" C-m
+            tmux send-keys -t "$SESSION_NAME:$ENG_ID" "#" C-m
+            tmux send-keys -t "$SESSION_NAME:$ENG_ID" "cd $REPO_PATH" C-m
             tmux send-keys -t "$SESSION_NAME:$ENG_ID" "#" C-m
             tmux send-keys -t "$SESSION_NAME:$ENG_ID" "# === BRIEFING ===" C-m
 
@@ -150,7 +213,46 @@ start_orchestration() {
 
             tmux send-keys -t "$SESSION_NAME:$ENG_ID" "# === END BRIEFING ===" C-m
             tmux send-keys -t "$SESSION_NAME:$ENG_ID" "#" C-m
-            tmux send-keys -t "$SESSION_NAME:$ENG_ID" "# Ready for instructions..." C-m
+
+            # Launch AI based on provider
+            case "$AI_PROVIDER" in
+                claude)
+                    tmux send-keys -t "$SESSION_NAME:$ENG_ID" "# Starting Claude instance..." C-m
+                    tmux send-keys -t "$SESSION_NAME:$ENG_ID" "claude --dangerously-skip-permissions" C-m
+                    sleep 3
+                    BRIEFING_CONTENT=$(cat "$BRIEFING_FILE")
+                    tmux send-keys -t "$SESSION_NAME:$ENG_ID" "$BRIEFING_CONTENT" C-m
+                    ;;
+
+                aider-local|aider-deepseek|aider-codellama|aider-qwen|aider-mixtral)
+                    # Map provider to Ollama model
+                    case "$AI_PROVIDER" in
+                        aider-local)
+                            OLLAMA_MODEL="${AI_MODEL:-codellama:13b}"
+                            ;;
+                        aider-deepseek)
+                            OLLAMA_MODEL="${AI_MODEL:-deepseek-coder:33b}"
+                            ;;
+                        aider-codellama)
+                            OLLAMA_MODEL="${AI_MODEL:-codellama:34b}"
+                            ;;
+                        aider-qwen)
+                            OLLAMA_MODEL="${AI_MODEL:-qwen2.5-coder:32b}"
+                            ;;
+                        aider-mixtral)
+                            OLLAMA_MODEL="${AI_MODEL:-mixtral:8x7b}"
+                            ;;
+                    esac
+
+                    tmux send-keys -t "$SESSION_NAME:$ENG_ID" "# Starting Aider with $OLLAMA_MODEL..." C-m
+                    tmux send-keys -t "$SESSION_NAME:$ENG_ID" "aider --model ollama/$OLLAMA_MODEL --no-auto-commits --yes --message \"$(cat "$BRIEFING_FILE")\"" C-m
+                    ;;
+
+                *)
+                    echo "❌ Unknown AI provider: $AI_PROVIDER"
+                    echo "Supported: claude, aider-local, aider-deepseek, aider-codellama, aider-qwen, aider-mixtral"
+                    ;;
+            esac
 
             # Record in registry
             echo "Engineer $ENG_ID: $ENG_NAME ($ENG_ROLE) - Window $ENG_ID" >> "$ENGINEER_REGISTRY"
@@ -350,8 +452,79 @@ broadcast_message() {
     done
 }
 
+# Install prerequisites function
+install_prerequisites() {
+    echo -e "${BLUE}🔧 Installing Prerequisites${NC}"
+    echo "AI Provider: $AI_PROVIDER"
+    echo ""
+
+    case "$AI_PROVIDER" in
+        claude)
+            echo "Claude Code should already be installed via npm/yarn"
+            echo "If not, run: npm install -g @anthropic-ai/claude-code"
+            ;;
+
+        aider-*|aider)
+            echo "📦 Installing Aider and Ollama for local models..."
+
+            # Check if Ollama is installed
+            if ! command -v ollama &> /dev/null; then
+                echo "Installing Ollama..."
+                curl -fsSL https://ollama.ai/install.sh | sh
+            else
+                echo "✅ Ollama already installed"
+            fi
+
+            # Check if Aider is installed
+            if ! command -v aider &> /dev/null; then
+                echo "Installing Aider..."
+                pip install aider-chat
+            else
+                echo "✅ Aider already installed"
+            fi
+
+            # Pull recommended models based on RAM
+            RAM_GB=$(free -g | grep Mem | awk '{print $2}')
+            echo ""
+            echo "System RAM: ${RAM_GB}GB"
+
+            if [ "$RAM_GB" -ge 32 ]; then
+                echo "Pulling large models (this may take a while)..."
+                ollama pull deepseek-coder:33b || true
+                ollama pull codellama:34b || true
+            elif [ "$RAM_GB" -ge 16 ]; then
+                echo "Pulling medium models..."
+                ollama pull codellama:13b || true
+                ollama pull deepseek-coder:7b || true
+            else
+                echo "Pulling small models..."
+                ollama pull codellama:7b || true
+            fi
+
+            echo ""
+            echo "✅ Aider setup complete!"
+            echo "Available models:"
+            ollama list
+            ;;
+
+        *)
+            echo "Unknown provider: $AI_PROVIDER"
+            echo "Supported: claude, aider-local, aider-deepseek, aider-codellama"
+            ;;
+    esac
+
+    echo ""
+    echo -e "${GREEN}✅ Prerequisites installed!${NC}"
+    echo ""
+    echo "Next step: Run orchestration with:"
+    echo "  $0 $CONFIG_FILE start --ai-provider $AI_PROVIDER"
+}
+
 # Main command dispatcher
 case "$COMMAND" in
+    install)
+        install_prerequisites
+        ;;
     start)
         start_orchestration
         ;;
