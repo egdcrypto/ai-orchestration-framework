@@ -22,7 +22,7 @@ while [[ $# -gt 0 ]]; do
             AI_MODEL="$2"
             shift 2
             ;;
-        start|stop|status|monitor|broadcast|install)
+        start|stop|status|monitor|broadcast|briefings|install)
             COMMAND="$1"
             shift
             ;;
@@ -453,6 +453,45 @@ broadcast_message() {
     done
 }
 
+# Show all engineer briefings
+show_briefings() {
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}   📋 Engineer Briefings - $PROJECT${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+
+    # Parse and display each engineer's briefing
+    parse_engineers | while IFS='|' read -r ENG_ID ENG_NAME ENG_ROLE; do
+        if [ -n "$ENG_ID" ]; then
+            echo -e "${YELLOW}════════════════════════════════════════${NC}"
+            echo -e "${YELLOW}Engineer $ENG_ID: $ENG_NAME${NC}"
+            echo -e "${YELLOW}Role: $ENG_ROLE${NC}"
+            echo -e "${YELLOW}════════════════════════════════════════${NC}"
+
+            # Extract briefing from YAML
+            briefing=$(awk -v id="$ENG_ID" '
+                /^  - id: '"$ENG_ID"'/ { found=1; next }
+                found && /^    briefing: \|/ { capture=1; next }
+                found && capture && /^      / {
+                    sub(/^      /, "")
+                    print $0
+                }
+                found && /^  - id:/ && !/^  - id: '"$ENG_ID"'/ { exit }
+                found && capture && /^    [a-zA-Z]/ && !/^    briefing:/ { exit }
+            ' "$CONFIG_FILE")
+
+            if [ -n "$briefing" ]; then
+                echo "$briefing"
+            else
+                echo -e "${RED}No briefing found${NC}"
+            fi
+            echo ""
+        fi
+    done
+
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+}
+
 # Install prerequisites function
 install_prerequisites() {
     echo -e "${BLUE}🔧 Installing Prerequisites${NC}"
@@ -540,6 +579,9 @@ case "$COMMAND" in
         ;;
     broadcast)
         broadcast_message "$@"
+        ;;
+    briefings)
+        show_briefings
         ;;
     *)
         echo "Usage: $0 [config-file] [command]"
