@@ -22,7 +22,7 @@ while [[ $# -gt 0 ]]; do
             AI_MODEL="$2"
             shift 2
             ;;
-        start|stop|status|monitor|broadcast|install)
+        start|stop|status|monitor|broadcast|briefings|install)
             COMMAND="$1"
             shift
             ;;
@@ -452,6 +452,56 @@ broadcast_message() {
     done
 }
 
+# Show all engineer briefings
+show_briefings() {
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}   📋 Engineer Briefings - $PROJECT${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+
+    # Parse and display each engineer's briefing
+    parse_engineers | while IFS='|' read -r ENG_ID ENG_NAME ENG_ROLE; do
+        if [ -n "$ENG_ID" ]; then
+            echo -e "${YELLOW}════════════════════════════════════════${NC}"
+            echo -e "${YELLOW}Engineer $ENG_ID: $ENG_NAME${NC}"
+            echo -e "${YELLOW}Role: $ENG_ROLE${NC}"
+            echo -e "${YELLOW}════════════════════════════════════════${NC}"
+
+            # Get briefing using Python or from saved files
+            if command -v python3 &> /dev/null; then
+                briefing=$(extract_briefing "$ENG_ID")
+            else
+                # Fallback to saved briefings
+                briefing_file="/tmp/${SESSION_NAME}_briefings/engineer${ENG_ID}_briefing.txt"
+                if [ -f "$briefing_file" ]; then
+                    briefing=$(cat "$briefing_file")
+                else
+                    briefing=""
+                fi
+            fi
+
+            if [ -n "$briefing" ] && [ "$briefing" != "No briefing provided" ]; then
+                echo "$briefing" | fold -w 80 -s
+            else
+                echo -e "${RED}No briefing found${NC}"
+            fi
+            echo ""
+        fi
+    done
+
+    # Also check for saved briefings in temp directory
+    if [ -d "/tmp/${SESSION_NAME}_briefings" ]; then
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${GREEN}📁 Active Session Briefings:${NC}"
+        echo "Located at: /tmp/${SESSION_NAME}_briefings/"
+        echo ""
+        ls -la "/tmp/${SESSION_NAME}_briefings/"*.txt 2>/dev/null || echo "No active briefings found"
+    fi
+
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+}
+
 # Install prerequisites function
 install_prerequisites() {
     echo -e "${BLUE}🔧 Installing Prerequisites${NC}"
@@ -540,6 +590,9 @@ case "$COMMAND" in
     broadcast)
         broadcast_message "$@"
         ;;
+    briefings)
+        show_briefings
+        ;;
     *)
         echo "Usage: $0 [config-file] [command]"
         echo ""
@@ -549,6 +602,7 @@ case "$COMMAND" in
         echo "  status    - Show session status"
         echo "  monitor   - Monitor all engineers"
         echo "  broadcast - Send message to all engineers"
+        echo "  briefings - Show all engineer briefings"
         echo ""
         echo "Examples:"
         echo "  $0 engineers.yaml start"
