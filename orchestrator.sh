@@ -22,7 +22,7 @@ while [[ $# -gt 0 ]]; do
             AI_MODEL="$2"
             shift 2
             ;;
-        start|stop|status|monitor|broadcast|briefings|install)
+        start|stop|status|monitor|broadcast|briefings|query-briefings|install)
             COMMAND="$1"
             shift
             ;;
@@ -41,6 +41,7 @@ while [[ $# -gt 0 ]]; do
             echo "  monitor   - Monitor engineers"
             echo "  broadcast - Send message to all"
             echo "  briefings - Show all engineer briefings"
+            echo "  query-briefings - Ask engineers about their briefings and messages"
             echo ""
             echo "Options:"
             echo "  --ai-provider <provider>  - AI provider (claude, aider-local, aider-deepseek, etc.)"
@@ -492,6 +493,43 @@ show_briefings() {
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
 
+# Query engineers about their briefings and messages
+query_briefings() {
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}   📋 Querying Engineers About Briefings${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+
+    if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+        echo -e "${RED}Session not found: $SESSION_NAME${NC}"
+        exit 1
+    fi
+
+    local query_message="Please provide a summary of: 1) Your original briefing and role, 2) Any additional messages or instructions you've received since starting, 3) Your current work status"
+
+    echo -e "${BLUE}📤 Sending query to all engineers...${NC}"
+    echo ""
+
+    parse_engineers | while IFS='|' read -r ENG_ID ENG_NAME ENG_ROLE; do
+        if [ -n "$ENG_ID" ]; then
+            echo -e "${YELLOW}Querying Engineer $ENG_ID ($ENG_NAME):${NC}"
+            if tmux send-keys -t "$SESSION_NAME:$ENG_ID" "$query_message" C-m 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} Query sent"
+            else
+                echo -e "  ${RED}✗${NC} Failed to send query"
+            fi
+            echo ""
+        fi
+    done
+
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}💡 Check engineer responses with:${NC}"
+    echo "  ./show-engineer-work.sh $SESSION_NAME"
+    echo "  ./monitor-engineers.sh $SESSION_NAME"
+    echo "  tmux attach -t $SESSION_NAME"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+}
+
 # Install prerequisites function
 install_prerequisites() {
     echo -e "${BLUE}🔧 Installing Prerequisites${NC}"
@@ -583,6 +621,9 @@ case "$COMMAND" in
     briefings)
         show_briefings
         ;;
+    query-briefings)
+        query_briefings
+        ;;
     *)
         echo "Usage: $0 [config-file] [command]"
         echo ""
@@ -593,6 +634,7 @@ case "$COMMAND" in
         echo "  monitor   - Monitor all engineers"
         echo "  broadcast - Send message to all engineers"
         echo "  briefings - Show all engineer briefings"
+        echo "  query-briefings - Ask engineers about their briefings and messages"
         echo ""
         echo "Examples:"
         echo "  $0 engineers.yaml start"
